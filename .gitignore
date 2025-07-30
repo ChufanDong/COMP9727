@@ -1,5 +1,5 @@
 # Data archive files
-data/archive/
+*.csv
 
 # Python cache files
 __pycache__/
