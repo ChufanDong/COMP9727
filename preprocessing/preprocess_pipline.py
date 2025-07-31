@@ -3,6 +3,7 @@ import os
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from preprocessing import clean
 from preprocessing import load_cleaned
 from preprocessing import text_preprocess
 
@@ -17,6 +18,30 @@ def anime_preprocess(animes: pd.DataFrame):
     
     return animes
 
+def _drop_ids_fromlist(fav_anime: list, ani_ids: set):
+    """Remove anime IDs from favorites list that don't exist in animes dataset."""
+    if not fav_anime:
+        return fav_anime
+    return [int(anime_id) for anime_id in fav_anime if int(anime_id) in ani_ids]
+
+def drop_unreachable_animes(profiles: pd.DataFrame, animes: pd.DataFrame):
+    """Remove anime IDs from profiles' favorites_anime that don't exist in animes dataset."""
+    animes_ids = set(animes["uid"].tolist())
+    profiles['favorites_anime'] = profiles['favorites_anime'].apply(
+        lambda x: _drop_ids_fromlist(x, animes_ids)
+    )
+    # debugging
+    # print("[preprocessing] Dropping unreachable animes from profiles...")
+    # print(profiles)
+    profiles["favorites_count"] = profiles["favorites_anime"].apply(len)
+    profiles["is_cold_start"] = profiles["favorites_count"] < 3
+
+    profiles = profiles[profiles["favorites_count"] > 0]  #去除无 favorites 的用户
+
+    # debugging
+    # print("[preprocessing] Unreachable animes dropped from profiles.")
+    # print(profiles)
+    return profiles
 
 def profile_preprocess(profiles: pd.DataFrame):
     """Process profile data."""
@@ -37,6 +62,8 @@ def final_preprocess(animes: pd.DataFrame, profiles: pd.DataFrame, reviews: pd.D
     profiles = profile_preprocess(profiles)
     reviews = review_preprocess(reviews)
 
+    profiles = drop_unreachable_animes(profiles, animes)
+
     return animes, profiles, reviews
 
 
@@ -48,6 +75,7 @@ if __name__ == "__main__":
     print("Processed Animes:")
     print(animes.head())
     print("\nProcessed Profiles:")
+    print(profiles['is_cold_start'].value_counts())
     print(profiles.head())
     print("\nProcessed Reviews:")
     print(reviews.head())

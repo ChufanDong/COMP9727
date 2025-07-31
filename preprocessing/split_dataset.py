@@ -40,7 +40,7 @@ def split_profile(profile: pd.DataFrame,
 
     return train_df, test_df
 
-def split_test():
+def main():
     # Load the cleaned profiles
     profiles = get_clean_profiles()
 
@@ -49,4 +49,4 @@ def split_test():
 
 
 if __name__ == "__main__":
-    split_test()
+    main()
