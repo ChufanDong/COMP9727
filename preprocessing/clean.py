@@ -33,7 +33,12 @@ def clean_profiles(df: pd.DataFrame) -> pd.DataFrame:
 
     def safe_parse_list(x):
         try:
-            return ast.literal_eval(x) if isinstance(x, str) else []
+            if isinstance(x, str):
+                return ast.literal_eval(x)
+            elif isinstance(x, list):
+                return x
+            else:
+                return []
         except:
             return []
 

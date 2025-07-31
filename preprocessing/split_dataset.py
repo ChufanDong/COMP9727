@@ -3,6 +3,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from preprocessing.load_cleaned import get_clean_animes, get_clean_profiles, get_clean_reviews
+from preprocessing.clean import clean_animes, clean_profiles, clean_reviews
 import pandas as pd
 from typing import List, Tuple, Optional
 def split_profile(profile: pd.DataFrame, 
@@ -36,17 +37,18 @@ def split_profile(profile: pd.DataFrame,
             test_profiles.append(test_row)
 
     train_df = pd.DataFrame(train_profiles)
+    train_df = clean_profiles(train_df)
     test_df = pd.DataFrame(test_profiles)
+    
 
     return train_df, test_df
+    
 
-def main():
+
+if __name__ == "__main__":
     # Load the cleaned profiles
     profiles = get_clean_profiles()
 
     # Split the profiles into train and test sets
     train_profiles, test_profiles = split_profile(profiles)
 
-
-if __name__ == "__main__":
-    main()

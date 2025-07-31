@@ -3,7 +3,7 @@ import os
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from preprocessing import clean
+from preprocessing.clean import clean_animes, clean_profiles, clean_reviews
 from preprocessing import load_cleaned
 from preprocessing import text_preprocess
 
@@ -33,10 +33,11 @@ def drop_unreachable_animes(profiles: pd.DataFrame, animes: pd.DataFrame):
     # debugging
     # print("[preprocessing] Dropping unreachable animes from profiles...")
     # print(profiles)
-    profiles["favorites_count"] = profiles["favorites_anime"].apply(len)
-    profiles["is_cold_start"] = profiles["favorites_count"] < 3
+    profiles = clean_profiles(profiles)
+    # profiles["favorites_count"] = profiles["favorites_anime"].apply(len)
+    # profiles["is_cold_start"] = profiles["favorites_count"] < 3
 
-    profiles = profiles[profiles["favorites_count"] > 0]  #去除无 favorites 的用户
+    # profiles = profiles[profiles["favorites_count"] > 0]  #去除无 favorites 的用户
 
     # debugging
     # print("[preprocessing] Unreachable animes dropped from profiles.")
