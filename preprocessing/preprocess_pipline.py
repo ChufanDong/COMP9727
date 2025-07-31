@@ -1,11 +1,27 @@
 import pandas as pd
 import os
 import sys
+import nltk
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from preprocessing.clean import clean_animes, clean_profiles, clean_reviews
 from preprocessing import load_cleaned
 from preprocessing import text_preprocess
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+CLEAN_DIR = os.path.join(BASE_DIR, "data", "cleaned")        
+os.makedirs(CLEAN_DIR, exist_ok=True)
+
+nltk.download('averaged_perceptron_tagger_eng')
+
+def save_cleaned(animes: pd.DataFrame,
+                 profiles: pd.DataFrame,
+                 reviews: pd.DataFrame,
+                 out_dir: str = CLEAN_DIR) -> None:
+    """Dump the three cleaned datasets into <project-root>/data/"""
+    animes.to_csv(os.path.join(out_dir, "animes_cleaned.csv"),   index=False)
+    profiles.to_csv(os.path.join(out_dir, "profiles_cleaned.csv"), index=False)
+    reviews.to_csv(os.path.join(out_dir, "reviews_cleaned.csv"), index=False)
 
 def anime_preprocess(animes: pd.DataFrame):
     """Process anime data."""
@@ -81,3 +97,5 @@ if __name__ == "__main__":
     print("\nProcessed Reviews:")
     print(reviews.head())
 
+    save_cleaned(animes, profiles, reviews)
+    print(f"[preprocessing] Cleaned data saved to: {CLEAN_DIR}")

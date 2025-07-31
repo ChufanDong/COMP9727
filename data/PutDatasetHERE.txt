@@ -1,1 +1,1 @@
-put archive folder from dataset to ANIMERECOMMENDER/data 
+Inside this folder, you need to create a folder called archive to store the original dataset
