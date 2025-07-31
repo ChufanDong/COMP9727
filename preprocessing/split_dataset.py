@@ -39,7 +39,8 @@ def split_profile(profile: pd.DataFrame,
     train_df = pd.DataFrame(train_profiles)
     train_df = clean_profiles(train_df)
     test_df = pd.DataFrame(test_profiles)
-    
+    test_df['is_cold_start'] = train_df['is_cold_start']  # Copy cold start status
+    test_df['favorites_count'] = test_df['favorites_anime'].apply(len)
 
     return train_df, test_df
     
