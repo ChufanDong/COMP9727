@@ -17,6 +17,7 @@ def anime_preprocess(animes: pd.DataFrame):
     
     return animes
 
+
 def profile_preprocess(profiles: pd.DataFrame):
     """Process profile data."""
     print("[preprocessing] Processing profile data...")

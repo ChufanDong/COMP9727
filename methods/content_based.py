@@ -18,6 +18,7 @@ from preprocessing.preprocess_pipline import (
     final_preprocess
 )
 from sklearn.feature_extraction.text import TfidfVectorizer
+from tqdm import tqdm
 
 class ContentBasedRecommender:
     """
@@ -138,18 +139,23 @@ class ContentBasedRecommender:
 
 
 
-def content_based_recommend(animes: pd.DataFrame, profiles: pd.DataFrame) -> list:
+def content_based_recommend(Recommender: ContentBasedRecommender, animes: pd.DataFrame, profiles: pd.DataFrame) -> dict:
     """Generate content-based recommendations based on anime genres."""
-    recommender = ContentBasedRecommender(animes)
+    recommender = Recommender
     recommendations = defaultdict(list)
     profiles = profiles[profiles['is_cold_start'] == False].reset_index(drop=True).sample(frac=1).reset_index(drop=True)
-    for _, profile in profiles.iterrows():
+    
+    for _, profile in tqdm(profiles.iterrows(), total=len(profiles), desc="Generating recommendations"):
         liked_animes = [int(uid) for uid in profile['favorites_anime']]
-        print(f"Profile {profile['profile']} likes animes: {liked_animes}")
+        # print(f"Profile {profile['profile']} likes animes: {liked_animes}")
         if not liked_animes:
             continue
-        # recs = recommender.recommend_for_user(liked_animes, top_k=10)
-        # recommendations[profile['profile']]= recs
+        try:
+            recs = recommender.recommend_for_user(liked_animes, top_k=10)
+        except ValueError as e:
+            print(f"Error for profile {profile['profile']}: {e}")
+            continue
+        recommendations[profile['profile']]= recs
 
     return recommendations
 
@@ -176,8 +182,6 @@ def main():
         print(f"Recommendations for {profile}:")
         for uid, sim in recs:
             print(f"  - UID: {uid}, Similarity: {sim:.4f}")
-
-    print(f"Total number of liked animes across all profiles: {total}")
     # Optionally save or return processed data
     return animes, profiles
 

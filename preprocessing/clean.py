@@ -48,6 +48,8 @@ def clean_profiles(df: pd.DataFrame) -> pd.DataFrame:
     """ print(df["favorites_anime"].iloc[0][0])
     print(type(df["favorites_anime"].iloc[0])) """
 
+    df = df.drop_duplicates(subset=["profile"])
+
     return df
 
 
