@@ -51,5 +51,7 @@ if __name__ == "__main__":
     profiles = get_clean_profiles()
 
     # Split the profiles into train and test sets
-    train_profiles, test_profiles = split_profile(profiles)
+    train_profiles, test_profiles = split_profile(profiles, 0.5, 0.5)
+    # summarize the results
+    print(f"Test profiles: {test_profiles['favorites_count'].describe()}")
 

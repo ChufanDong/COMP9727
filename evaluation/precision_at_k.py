@@ -88,7 +88,7 @@ def main():
     animes = anime_preprocess(animes)
 
     # Split the dataset into train and test sets
-    train_profiles, test_profiles = split_profile(profiles, 0.8, 0.2)
+    train_profiles, test_profiles = split_profile(profiles, 0.5, 0.5)
 
     # Initialize the content-based recommender
     recommender = ContentBasedRecommender(animes)
@@ -97,11 +97,11 @@ def main():
     content_based_recommendations = content_based_recommend(recommender, animes, train_profiles)
 
     # Evaluate precision at k
-    precision_results = evaluate_precision_at_k(content_based_recommendations, test_profiles, k=5)
+    precision_results = evaluate_precision_at_k(content_based_recommendations, test_profiles, k=10)
     
     # Print precision results
-    # for user, precision in precision_results.items():
-    #     print(f"User {user}: Precision at 10 = {precision:.4f}")
+    for user, precision in precision_results.items():
+        print(f"User {user}: Precision at 10 = {precision:.4f}, {test_profiles[test_profiles['profile'] == user]['favorites_count'].values[0]} favorites")
     # print overall precision
     overall_precision = sum(precision_results.values()) / len(precision_results) if precision_results else 0.0
     print(f"Overall Precision at 10: {overall_precision:.4f}")
