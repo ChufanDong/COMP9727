@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from collections import defaultdict
 from typing import List, Optional, Dict, Any
+from scipy.sparse import csr_matrix  # Sparse matrix support
+from tqdm import tqdm  # Progress bar
 
 import sys
 import os
@@ -18,9 +20,8 @@ from preprocessing.preprocess_pipline import (
     review_preprocess,
     final_preprocess
 )
-from scipy.sparse import csr_matrix  # Sparse matrix support
-from tqdm import tqdm  # Progress bar
-
+from preprocessing.split_dataset import split_profile
+from evaluation.precision_at_k import evaluate_precision_at_k
 
 def collaborative_recommend(
     profiles: pd.DataFrame,
@@ -31,7 +32,7 @@ def collaborative_recommend(
     Returns a dict mapping profile_id -> list of (anime_uid, score).
     """
     # drop cold start users
-    profiles = profiles[profiles['favorites_anime'].apply(lambda favs: len(favs) > 3)].reset_index(drop=True)
+    # profiles = profiles[profiles['favorites_anime'].apply(lambda favs: len(favs) > 3)].reset_index(drop=True)
 
     recommender = CollaborativeFilteringRecommender(profiles)
     recommendations = {}
@@ -76,7 +77,7 @@ class CollaborativeFilteringRecommender:
             (data, (row_idx, col_idx)),
             shape=(len(self.anime_ids), len(self.profile_ids))
         )
-        self.nn_model = NearestNeighbors(algorithm='brute', metric='cosine')
+        self.nn_model = NearestNeighbors(algorithm='brute', metric='cosine') # set metrics
         self.nn_model.fit(self.ratings_matrix)
 
     def recommend_similar_items(self, target_uid: int, top_k: int = 10) -> List[tuple]:
@@ -97,7 +98,7 @@ class CollaborativeFilteringRecommender:
             uid = self.anime_ids[i]
             if uid == target_uid:
                 continue
-            recs.append((uid, float(sim)))
+            recs.append((int(uid), float(sim))) # uid should be int for evaluation
             if len(recs) >= top_k:
                 break
         return recs
@@ -112,7 +113,8 @@ class CollaborativeFilteringRecommender:
             return []
 
         idxs = [self.anime_ids.index(uid) for uid in valid]
-        user_vec = self.ratings_matrix[idxs].sum(axis=0)
+        #user_vec = self.ratings_matrix[idxs].sum(axis=0)
+        user_vec = self.ratings_matrix[idxs].mean(axis=0)
         user_vec = np.array(user_vec).reshape(1, -1)
 
         distances, indices = self.nn_model.kneighbors(
@@ -125,7 +127,7 @@ class CollaborativeFilteringRecommender:
             uid = self.anime_ids[i]
             if uid in valid:
                 continue
-            recs.append((uid, float(sim)))
+            recs.append((int(uid), float(sim)))
             if len(recs) >= top_k:
                 break
         return recs
@@ -135,8 +137,19 @@ if __name__ == "__main__":
     profiles = profile_preprocess(get_clean_profiles())
     print("Profiles loaded and preprocessed.")
 
-    recs = collaborative_recommend(profiles, top_k=10)
-    for pid, rec_list in recs.items():
-        print(f"Recommendations for {pid}:")
-        for uid, score in rec_list:
-            print(f"  - UID {uid}, score {score:.4f}")
+    profiles = profiles[profiles['favorites_anime'].apply(lambda favs: len(favs) > 3)].reset_index(drop=True)
+    print("Cold Start Users dropped")
+
+    profiles, test = split_profile(profiles, 0.5, 0.5)
+
+    recs = collaborative_recommend(profiles, top_k=50)
+    #for pid, rec_list in recs.items():
+    #    print(f"Recommendations for {pid}:")
+    #    for uid, score in rec_list:
+    #        print(f"  - UID {uid}, score {score:.4f}")
+
+    precision_results = evaluate_precision_at_k(recs, test, k=5)
+
+    overall_precision = sum(precision_results.values()) / len(precision_results) if precision_results else 0.0
+    print(f"Overall Precision at 10: {overall_precision:.4f}")
+    print("Evaluation completed.")
