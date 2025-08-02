@@ -32,7 +32,7 @@ class ContentBasedRecommender:
         nn_params: Optional[Dict[str, Any]] = None
     ):
         # Default parameters
-        tfidf_params = tfidf_params or {'stop_words': 'english', 'max_features': 1000}
+        tfidf_params = tfidf_params or {'stop_words': 'english', 'max_features': 5000}
         nn_params    = nn_params    or {'n_neighbors': 10, 'metric': 'cosine', 'algorithm': 'auto'}
 
         # Data preparation

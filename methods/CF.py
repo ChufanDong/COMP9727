@@ -122,7 +122,7 @@ training_data = build_svd_training(
 print("最终SVD训练集行数:", len(training_data))
 print(training_data.head()) """
 
-from surprise import SVD, Dataset, Reader
+# from surprise import SVD, Dataset, Reader
 
 def train_svd_model(training_data, n_factors=50, n_epochs=20, random_state=42):
     """
@@ -205,7 +205,7 @@ def recommend_for_all_users(model, trainset, top_k=10):
 
     return user_recommendations
 
-def main(top_k=10):
+def auto_recommend_dump(top_k=10):
     # 1️⃣ 加载基础清洗后的数据
     profiles = get_clean_profiles()
     reviews = get_clean_reviews()
@@ -242,10 +242,20 @@ def main(top_k=10):
     for user, recs in list(recommendations.items())[:3]:
         print(f"{user}: {recs}")
 
+    with open("svd_recommendations.json", "w", encoding="utf-8") as f:
+        json.dump(recommendations, f, ensure_ascii=False)
+
     return recommendations
 
+def read_json_recommendations(file_path: str) -> Dict[str, List]:
+    """
+    从JSON文件读取推荐结果
+    """
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 if __name__ == "__main__":
-    rec_dict = main(top_k=10)
+    rec_dict = auto_recommend_dump(top_k=10)
 
     with open("svd_recommendations.json", "w", encoding="utf-8") as f:
-        json.dump(rec_dict, f, ensure_ascii=False, indent=2)
+        json.dump(rec_dict, f, ensure_ascii=False)
