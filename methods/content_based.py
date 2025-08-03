@@ -154,7 +154,7 @@ def content_based_recommend(Recommender: ContentBasedRecommender, animes: pd.Dat
         for pid, recs in cold_start.items():
             recommendations[pid] = recs
     
-    profiles = profiles[(profiles['favorites_anime'].apply(len) > 3)].reset_index(drop=True)
+    profiles = profiles[profiles['is_cold_start']==False].reset_index(drop=True)
     
     for _, profile in tqdm(profiles.iterrows(), total=len(profiles), desc="Generating recommendations"):
         liked_animes = [int(uid) for uid in profile['favorites_anime']]

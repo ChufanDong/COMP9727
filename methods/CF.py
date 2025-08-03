@@ -257,21 +257,14 @@ def recommend_for_all_users_fast(model, trainset, train_profiles, top_k=10):
     return recommendations
 
 
-def SVD_recommend(top_k=10):
+def SVD_recommend(train_profiles, test_prefiles, reviews, top_k=10):
     """
     Automated SVD recommendation pipeline, generate Top-K recommendation dictionary
     """
-    # 1️⃣ Load basic cleaned data
-    profiles = get_clean_profiles()
-    reviews = get_clean_reviews()
 
-    # 2️⃣ Secondary preprocessing
-    profiles = profile_preprocess(profiles)
-    reviews = review_preprocess(reviews)
-
-    # 3️⃣ Split training and test sets
-    from preprocessing.split_dataset import split_profile
-    train_profiles, test_profiles = split_profile(profiles, train_size=0.5, test_size=0.5)
+    train_profiles = train_profiles[train_profiles['is_cold_start'] == False].reset_index(drop=True)
+    test_profiles = test_prefiles[test_prefiles['is_cold_start'] == False].reset_index(drop=True)
+    reviews = reviews
 
     # 4️⃣ Build SVD training data
     training_data = build_svd_training(
