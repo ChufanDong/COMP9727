@@ -10,6 +10,7 @@ from preprocessing.load_cleaned import (
     get_clean_animes,
     get_clean_profiles,
     get_clean_reviews,
+    get_all_cleaned_data
 )
 from preprocessing.preprocess_pipline import (
     anime_preprocess, 
@@ -17,8 +18,12 @@ from preprocessing.preprocess_pipline import (
     review_preprocess,
     final_preprocess
 )
+from preprocessing.split_dataset import split_profile
 from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm import tqdm
+from evaluation.precision_at_k import evaluate_precision_at_k
+from evaluation.ndcg import evaluate_ndcg_at_k
+from methods.cold_start import cold_start_top_n, recommend_for_cold_start_profiles
 
 class ContentBasedRecommender:
     """
@@ -32,7 +37,7 @@ class ContentBasedRecommender:
         nn_params: Optional[Dict[str, Any]] = None
     ):
         # Default parameters
-        tfidf_params = tfidf_params or {'stop_words': 'english', 'max_features': 5000}
+        tfidf_params = tfidf_params or {'stop_words': 'english', 'max_features': 9800}
         nn_params    = nn_params    or {'n_neighbors': 10, 'metric': 'cosine', 'algorithm': 'auto'}
 
         # Data preparation
@@ -143,7 +148,13 @@ def content_based_recommend(Recommender: ContentBasedRecommender, animes: pd.Dat
     """Generate content-based recommendations based on anime genres."""
     recommender = Recommender
     recommendations = defaultdict(list)
-    profiles = profiles[profiles['favorites_anime'].apply(len) > 3].reset_index(drop=True).sample(frac=1).reset_index(drop=True)
+
+    cold_start = recommend_for_cold_start_profiles(profiles, n=10)
+    if cold_start:
+        for pid, recs in cold_start.items():
+            recommendations[pid] = recs
+    
+    profiles = profiles[(profiles['favorites_anime'].apply(len) > 3)].reset_index(drop=True)
     
     for _, profile in tqdm(profiles.iterrows(), total=len(profiles), desc="Generating recommendations"):
         liked_animes = [int(uid) for uid in profile['favorites_anime']]
@@ -164,26 +175,97 @@ def main():
     """Run the preprocessing pipeline for animes, profiles, and reviews."""
     
     # Load cleaned data
-    animes = get_clean_animes()
-    profiles = get_clean_profiles()
-    # reviews = get_clean_reviews()
-
+    animes, profiles, reviews = get_all_cleaned_data()
     # Preprocess each dataset
-    animes = anime_preprocess(animes)
-    profiles = profile_preprocess(profiles)
-    # reviews = review_preprocess(reviews)
-    # animes = pd.read_csv(r"E:\UNSW\COMP9727\Proj\animeRecommender\animeRecommender\data\processed_animes.csv")
-
+    animes, profiles, reviews = final_preprocess(animes, profiles, reviews)
+    #split profiles into training and testing sets
+    train_profiles, test_profiles = split_profile(profiles, train_size=0.8, test_size=0.2)
 
     print("Preprocessing complete. Animes and profiles are ready for recommendation.")
-    # debugging
-    recommends = content_based_recommend(animes, profiles)
-    for profile, recs in recommends.items():
-        print(f"Recommendations for {profile}:")
-        for uid, sim in recs:
-            print(f"  - UID: {uid}, Similarity: {sim:.4f}")
-    # Optionally save or return processed data
-    return animes, profiles
+    
+    # prepare different parameters for the TFIDF
+    TFIDF_params = []
+    for i in range(9800, 100000, 100):
+        TFIDF_params.append({'stop_words': 'english', 'max_features': i})
+    
+    import matplotlib.pyplot as plt
+    
+    best_precision = 0.0
+    best_ndcg = 0.0
+    best_params_precision = None
+    best_params_ndcg = None
+    
+    # Store results for plotting
+    max_features_list = []
+    precision_scores = []
+    ndcg_scores = []
+    
+    for params in tqdm(TFIDF_params, desc="Testing different TFIDF parameters"):
+        print(f"Using TFIDF parameters: {params}")
+        recommender = ContentBasedRecommender(animes, tfidf_params=params)
+        # Get recommendations using content-based filtering
+        recommendations = content_based_recommend(recommender, animes, train_profiles)
+        
+        # Evaluate precision at k
+        precision_results = evaluate_precision_at_k(recommendations, test_profiles, k=10)
+        
+        # Evaluate NDCG at k
+        ndcg_results = evaluate_ndcg_at_k(recommendations, test_profiles, k=10)
+        
+        overall_precision = sum(precision_results.values()) / len(precision_results) if precision_results else 0.0
+        overall_ndcg = sum(ndcg_results.values()) / len(ndcg_results) if ndcg_results else 0.0
+        print(f"Overall Precision at 10: {overall_precision:.4f}, Overall NDCG at 10: {overall_ndcg:.4f}")
+        
+        # Store results
+        max_features_list.append(params['max_features'])
+        precision_scores.append(overall_precision)
+        ndcg_scores.append(overall_ndcg)
+        
+        if overall_precision > best_precision:
+            best_precision = overall_precision
+            best_params_precision = params
+        if overall_ndcg > best_ndcg:
+            best_ndcg = overall_ndcg
+            best_params_ndcg = params
+
+    print(f"Best Precision: {best_precision:.4f} with params {best_params_precision}")
+    print(f"Best NDCG: {best_ndcg:.4f} with params {best_params_ndcg}")
+    
+    # Plot results
+    plt.figure(figsize=(12, 5))
+    
+    plt.subplot(1, 2, 1)
+    plt.plot(max_features_list, precision_scores, 'b-', marker='o', markersize=2)
+    plt.xlabel('Max Features')
+    plt.ylabel('Precision@10')
+    plt.title('Precision@10 vs Max Features')
+    plt.grid(True, alpha=0.3)
+    plt.axvline(x=best_params_precision['max_features'], color='r', linestyle='--', 
+                label=f'Best: {best_params_precision["max_features"]}')
+    plt.legend()
+    
+    plt.subplot(1, 2, 2)
+    plt.plot(max_features_list, ndcg_scores, 'g-', marker='o', markersize=2)
+    plt.xlabel('Max Features')
+    plt.ylabel('NDCG@10')
+    plt.title('NDCG@10 vs Max Features')
+    plt.grid(True, alpha=0.3)
+    plt.axvline(x=best_params_ndcg['max_features'], color='r', linestyle='--',
+                label=f'Best: {best_params_ndcg["max_features"]}')
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.savefig('tfidf_parameter_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Save results to CSV
+    results_df = pd.DataFrame({
+        'max_features': max_features_list,
+        'precision_at_10': precision_scores,
+        'ndcg_at_10': ndcg_scores
+    })
+    results_df.to_csv('tfidf_parameter_results.csv', index=False)
+    print("Results saved to 'tfidf_parameter_results.csv'")
 
 if __name__ == "__main__":
     main()
