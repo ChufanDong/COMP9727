@@ -8,10 +8,6 @@ import numpy as np
 from sklearn.metrics import ndcg_score
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from preprocessing.load_cleaned import get_clean_profiles, get_clean_animes
-from preprocessing.preprocess_pipline import final_preprocess, anime_preprocess
-from preprocessing.split_dataset import split_profile
-from methods.content_based import ContentBasedRecommender, content_based_recommend
 
 def ndcg_at_n(predictions: List[int], ground_truth: List[int], n: int) -> float:
     """
@@ -85,32 +81,32 @@ def evaluate_ndcg_at_k(predictions: Dict[str, List[Tuple[int, float]]],
     
     return batch_ndcg_at_n(predictions, ground_truth_dict, k)
 
-def main():
-    # Load the cleaned profiles and animes
-    profiles = get_clean_profiles().drop_duplicates(['profile'])
-    animes = get_clean_animes()
-    # Preprocess the animes
-    animes = anime_preprocess(animes)
+# def main():
+#     # Load the cleaned profiles and animes
+#     profiles = get_clean_profiles().drop_duplicates(['profile'])
+#     animes = get_clean_animes()
+#     # Preprocess the animes
+#     animes = anime_preprocess(animes)
 
-    # Split the dataset into train and test sets
-    train_profiles, test_profiles = split_profile(profiles, 0.8, 0.2)
+#     # Split the dataset into train and test sets
+#     train_profiles, test_profiles = split_profile(profiles, 0.8, 0.2)
 
-    # Initialize the content-based recommender
-    recommender = ContentBasedRecommender(animes)
+#     # Initialize the content-based recommender
+#     recommender = ContentBasedRecommender(animes)
 
-    # Generate recommendations for each user in the test set
-    content_based_recommendations = content_based_recommend(recommender, animes, train_profiles)
+#     # Generate recommendations for each user in the test set
+#     content_based_recommendations = content_based_recommend(recommender, animes, train_profiles)
 
-    # Evaluate NDCG at k
-    ndcg_results = evaluate_ndcg_at_k(content_based_recommendations, test_profiles, k=5)
+#     # Evaluate NDCG at k
+#     ndcg_results = evaluate_ndcg_at_k(content_based_recommendations, test_profiles, k=5)
     
-    # Print NDCG results
-    for user, ndcg in ndcg_results.items():
-        print(f"User {user}: NDCG at 5 = {ndcg:.4f}")
-    # print overall NDCG
-    overall_ndcg = sum(ndcg_results.values()) / len(ndcg_results) if ndcg_results else 0.0
-    print(f"Overall NDCG at 5: {overall_ndcg:.4f}")
-    print("Evaluation completed.")
+#     # Print NDCG results
+#     for user, ndcg in ndcg_results.items():
+#         print(f"User {user}: NDCG at 5 = {ndcg:.4f}")
+#     # print overall NDCG
+#     overall_ndcg = sum(ndcg_results.values()) / len(ndcg_results) if ndcg_results else 0.0
+#     print(f"Overall NDCG at 5: {overall_ndcg:.4f}")
+#     print("Evaluation completed.")
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

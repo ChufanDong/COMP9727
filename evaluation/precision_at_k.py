@@ -6,10 +6,6 @@ import os
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from preprocessing.load_cleaned import get_clean_profiles, get_clean_animes
-from preprocessing.preprocess_pipline import final_preprocess, anime_preprocess
-from preprocessing.split_dataset import split_profile
-from methods.content_based import ContentBasedRecommender, content_based_recommend
 
 def precision_at_n(predictions: List[int], ground_truth: List[int], n: int) -> float:
     """
@@ -80,34 +76,34 @@ def evaluate_precision_at_k(predictions: Dict[str, List[Tuple[int, float]]],
     return batch_precision_at_n(predictions, ground_truth_dict, k)
 
 
-def main():
-    # Load the cleaned profiles and animes
-    profiles = get_clean_profiles().drop_duplicates(['profile'])
-    animes = get_clean_animes()
-    # Preprocess the animes
-    animes = anime_preprocess(animes)
+# def main():
+#     # Load the cleaned profiles and animes
+#     profiles = get_clean_profiles().drop_duplicates(['profile'])
+#     animes = get_clean_animes()
+#     # Preprocess the animes
+#     animes = anime_preprocess(animes)
 
-    # Split the dataset into train and test sets
-    train_profiles, test_profiles = split_profile(profiles, 0.5, 0.5)
+#     # Split the dataset into train and test sets
+#     train_profiles, test_profiles = split_profile(profiles, 0.5, 0.5)
 
-    # Initialize the content-based recommender
-    recommender = ContentBasedRecommender(animes)
+#     # Initialize the content-based recommender
+#     recommender = ContentBasedRecommender(animes)
 
-    # Generate recommendations for each user in the test set
-    content_based_recommendations = content_based_recommend(recommender, animes, train_profiles)
+#     # Generate recommendations for each user in the test set
+#     content_based_recommendations = content_based_recommend(recommender, animes, train_profiles)
 
-    # Evaluate precision at k
-    precision_results = evaluate_precision_at_k(content_based_recommendations, test_profiles, k=10)
+#     # Evaluate precision at k
+#     precision_results = evaluate_precision_at_k(content_based_recommendations, test_profiles, k=10)
     
-    # Print precision results
-    for user, precision in precision_results.items():
-        print(f"User {user}: Precision at 10 = {precision:.4f}, {test_profiles[test_profiles['profile'] == user]['favorites_count'].values[0]} favorites")
-    # print overall precision
-    overall_precision = sum(precision_results.values()) / len(precision_results) if precision_results else 0.0
-    print(f"Overall Precision at 10: {overall_precision:.4f}")
-    print("Evaluation completed.")
-if __name__ == "__main__":
-    main()
+#     # Print precision results
+#     for user, precision in precision_results.items():
+#         print(f"User {user}: Precision at 10 = {precision:.4f}, {test_profiles[test_profiles['profile'] == user]['favorites_count'].values[0]} favorites")
+#     # print overall precision
+#     overall_precision = sum(precision_results.values()) / len(precision_results) if precision_results else 0.0
+#     print(f"Overall Precision at 10: {overall_precision:.4f}")
+#     print("Evaluation completed.")
+# if __name__ == "__main__":
+#     main()
 
 
 
