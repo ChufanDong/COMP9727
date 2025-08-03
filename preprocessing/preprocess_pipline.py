@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import sys
 import nltk
+import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from preprocessing.clean import clean_animes, clean_profiles, clean_reviews
@@ -31,6 +32,9 @@ def anime_preprocess(animes: pd.DataFrame):
     print("[preprocessing] Processing anime data...")
     animes['synopsis'] = animes['synopsis'].apply(text_preprocess.text_process)
     animes['duration'] = animes['aired'].apply(text_preprocess.transform_quarter)
+    # animes.dropna(subset=['synopsis'], inplace=True, ignore_index=True)
+    # show number of dropped animes
+    # print(f"[preprocessing] Dropped {animes['synopsis'].isna().sum()} animes with no synopsis.")
     print("[preprocessing] Anime data processed successfully.")
     
     return animes
@@ -84,6 +88,13 @@ def final_preprocess(animes: pd.DataFrame, profiles: pd.DataFrame, reviews: pd.D
 
     return animes, profiles, reviews
 
+def save_recommendations(recommendations: dict, out_dir: str = CLEAN_DIR) -> None:
+    """Save recommendations to a JSON file."""
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+    with open(os.path.join(out_dir, "recommendations.json"), 'w') as f:
+        json.dump(recommendations, f, separators=(',', ':'))
+    print(f"[preprocessing] Recommendations saved to: {os.path.join(out_dir, 'recommendations.json')}")
 
 if __name__ == "__main__":
     # Example usage

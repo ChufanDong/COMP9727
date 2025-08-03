@@ -9,11 +9,11 @@ from sklearn.metrics import ndcg_score
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-def ndcg_at_n(predictions: List[int], ground_truth: List[int], n: int) -> float:
+def ndcg_at_n(predictions: List[Tuple[int, float]], ground_truth: List[int], n: int) -> float:
     """
-    Calculate NDCG at n for a set of predictions using sklearn.
+    Calculate NDCG at n using the actual prediction scores.
     
-    :param predictions: List of predicted items.
+    :param predictions: List of (item_id, score) tuples, sorted by score desc
     :param ground_truth: List of true items.
     :param n: The number of top items to consider for NDCG calculation.
     :return: NDCG at n.
@@ -26,16 +26,25 @@ def ndcg_at_n(predictions: List[int], ground_truth: List[int], n: int) -> float:
     if not pred_at_n:
         return 0.0
     
-    # Create binary relevance scores for predictions
     ground_truth_set = set(ground_truth)
-    y_true = np.array([[1 if item in ground_truth_set else 0 for item in pred_at_n]])
-    y_score = np.array([[1.0] * len(pred_at_n)])  # Uniform scores since we only have rankings
+    
+    # Extract items and scores
+    pred_items = [item for item, _ in pred_at_n]
+    pred_scores = [score for _, score in pred_at_n]
+    
+    # Create relevance scores (1 for relevant, 0 for irrelevant)
+    relevance_scores = [1.0 if item in ground_truth_set else 0.0 for item in pred_items]
     
     # Check if there are any relevant items in predictions
-    if not np.any(y_true):
+    if not any(rel > 0 for rel in relevance_scores):
         return 0.0
     
+    # Use prediction scores as y_score and relevance as y_true
+    y_true = np.array([relevance_scores])
+    y_score = np.array([pred_scores])
+    
     return ndcg_score(y_true, y_score, k=n)
+
 
 def batch_ndcg_at_n(predictions: Dict[str, List[Tuple[int, float]]], 
                    ground_truth: Dict[str, List[int]], 
@@ -46,8 +55,7 @@ def batch_ndcg_at_n(predictions: Dict[str, List[Tuple[int, float]]],
     ndcgs = {}
     for user, preds in predictions.items():
         true_items = ground_truth.get(user, [])
-        pred_items = [item for item, _ in preds]
-        ndcgs[user] = ndcg_at_n(pred_items, true_items, n)
+        ndcgs[user] = ndcg_at_n(preds, true_items, n)
     
     return ndcgs
 

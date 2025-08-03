@@ -44,7 +44,7 @@ def clean_profiles(df: pd.DataFrame) -> pd.DataFrame:
 
     df["favorites_anime"] = df["favorites_anime"].apply(safe_parse_list)
     df["favorites_count"] = df["favorites_anime"].apply(len)
-    df["is_cold_start"] = df["favorites_count"] <= 3
+    df["is_cold_start"] = df["favorites_count"] <= 9
     df["gender"] = df["gender"].fillna("NULL")
     df["birthday"] = df["birthday"].fillna("NULL")
 
