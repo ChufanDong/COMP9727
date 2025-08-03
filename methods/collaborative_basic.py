@@ -22,6 +22,7 @@ from preprocessing.preprocess_pipline import (
 )
 from preprocessing.split_dataset import split_profile
 from evaluation.precision_at_k import evaluate_precision_at_k
+from evaluation.recall_at_k import evaluate_recall_at_k
 
 def collaborative_recommend(
     profiles: pd.DataFrame,
@@ -31,12 +32,13 @@ def collaborative_recommend(
     Generate recommendations for each user profile based on favorite anime.
     Returns a dict mapping profile_id -> list of (anime_uid, score).
     """
-    # drop cold start users
+    # Drop cold start users
     # profiles = profiles[profiles['favorites_anime'].apply(lambda favs: len(favs) > 3)].reset_index(drop=True)
 
     recommender = CollaborativeFilteringRecommender(profiles)
     recommendations = {}
-    # Wrap the iteration in a progress bar
+    #print(f'The current k value is {top_k}.')
+    # Progress bar
     for row in tqdm(profiles.itertuples(index=False), total=len(profiles), desc="Processing users"):
         recs = recommender.recommend_for_user(row.favorites_anime, top_k)
         recommendations[row.profile] = recs
@@ -52,7 +54,7 @@ class CollaborativeFilteringRecommender:
         profiles: pd.DataFrame,
         nn_params: Optional[Dict[str, Any]] = None
     ):
-        nn_params = nn_params or {'n_neighbors': 10, 'metric': 'cosine', 'algorithm': 'auto'}
+        nn_params = nn_params or {'metric': 'cosine', 'algorithm': 'auto'}
 
         # Extract user IDs and all unique anime IDs from favorites
         self.profile_ids = profiles['profile'].tolist()
@@ -77,7 +79,7 @@ class CollaborativeFilteringRecommender:
             (data, (row_idx, col_idx)),
             shape=(len(self.anime_ids), len(self.profile_ids))
         )
-        self.nn_model = NearestNeighbors(algorithm='brute', metric='cosine') # set metrics
+        self.nn_model = NearestNeighbors(algorithm=nn_params['algorithm'], metric=nn_params['metric']) # set metrics
         self.nn_model.fit(self.ratings_matrix)
 
     def recommend_similar_items(self, target_uid: int, top_k: int = 10) -> List[tuple]:
@@ -113,7 +115,7 @@ class CollaborativeFilteringRecommender:
             return []
 
         idxs = [self.anime_ids.index(uid) for uid in valid]
-        #user_vec = self.ratings_matrix[idxs].sum(axis=0)
+        #user_vec = self.ratings_matrix[idxs].sum(axis=0)   # compare between sum and mean
         user_vec = self.ratings_matrix[idxs].mean(axis=0)
         user_vec = np.array(user_vec).reshape(1, -1)
 
@@ -143,13 +145,14 @@ if __name__ == "__main__":
     profiles, test = split_profile(profiles, 0.5, 0.5)
 
     recs = collaborative_recommend(profiles, top_k=50)
-    #for pid, rec_list in recs.items():
+    #for pid, rec_list in recs.items():                             # print the result in terminal
     #    print(f"Recommendations for {pid}:")
     #    for uid, score in rec_list:
     #        print(f"  - UID {uid}, score {score:.4f}")
 
-    precision_results = evaluate_precision_at_k(recs, test, k=5)
+    #precision_results = evaluate_precision_at_k(recs, test, k=5)
+    precision_results = evaluate_recall_at_k(recs, test, k=10)
 
     overall_precision = sum(precision_results.values()) / len(precision_results) if precision_results else 0.0
-    print(f"Overall Precision at 10: {overall_precision:.4f}")
+    print(f"Overall Precision at 5: {overall_precision:.4f}")
     print("Evaluation completed.")
