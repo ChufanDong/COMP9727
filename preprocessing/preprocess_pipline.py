@@ -5,14 +5,15 @@ import nltk
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from preprocessing.clean import clean_animes, clean_profiles, clean_reviews
-from preprocessing import load_cleaned
+from preprocessing.split_dataset import split_profile
+from preprocessing.load_cleaned import get_clean_animes, get_clean_profiles, get_clean_reviews, get_all_cleaned_data
 from preprocessing import text_preprocess
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 CLEAN_DIR = os.path.join(BASE_DIR, "data", "cleaned")        
 os.makedirs(CLEAN_DIR, exist_ok=True)
 
-nltk.download('averaged_perceptron_tagger_eng')
+# nltk.download('averaged_perceptron_tagger_eng')
 
 def save_cleaned(animes: pd.DataFrame,
                  profiles: pd.DataFrame,
