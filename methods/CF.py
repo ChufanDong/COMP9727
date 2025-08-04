@@ -54,11 +54,11 @@ def build_svd_training(
         Enhanced clean rating data, ready for SVD training
     """
 
-    # 1️⃣ Keep only training set users
+    # Keep only training set users
     train_users = set(train_profiles['profile'])
     reviews_filtered = reviews[reviews['profile'].isin(train_users)].copy()
 
-    # 2️⃣ Build fixed ratings for training set favorites
+    # Build fixed ratings for training set favorites
     extra_rows = []
     for _, row in train_profiles.iterrows():
         user = row['profile']
@@ -71,7 +71,7 @@ def build_svd_training(
             })
     train_extra_df = pd.DataFrame(extra_rows)
 
-    # 3️⃣ Merge enhanced ratings
+    # Merge enhanced ratings
     augmented_reviews = pd.concat([reviews_filtered, train_extra_df], ignore_index=True)
 
     # Same user-anime duplicate ratings: keep original rating, discard 7-score padding
@@ -80,7 +80,7 @@ def build_svd_training(
         keep='first'
     )
 
-    # 4️⃣ Remove test set conflicting ratings (avoid data leakage)
+    # Remove test set conflicting ratings (avoid data leakage)
     test_conflicts = set()
     for _, row in test_profiles.iterrows():
         user = row['profile']
@@ -208,35 +208,35 @@ def recommend_for_all_users_fast(model, trainset, train_profiles, top_k=10):
 
     num_users, num_items = trainset.n_users, trainset.n_items
 
-    # 1️⃣ First generate cold start user recommendation dictionary
+    # First generate cold start user recommendation dictionary
     cold_start_recs = recommend_for_cold_start_profiles(train_profiles, n=top_k)
     cold_start_users = set(cold_start_recs.keys())
 
-    # 2️⃣ Calculate complete prediction matrix (only for non-cold-start users)
+    # Calculate complete prediction matrix (only for non-cold-start users)
     pred_matrix = np.dot(model.pu, model.qi.T)
     if model.biased:  # Only add bias when biased=True
         pred_matrix += model.trainset.global_mean
         pred_matrix += model.bu[:, np.newaxis]
         pred_matrix += model.bi[np.newaxis, :]
 
-    # 3️⃣ Clip to rating range, ensure consistency with model.predict
+    # Clip to rating range, ensure consistency with model.predict
     min_rating, max_rating = trainset.rating_scale
     pred_matrix = np.clip(pred_matrix, min_rating, max_rating)
 
-    # 3️⃣ Mask already rated items
+    # Mask already rated items
     rated_mask = np.zeros_like(pred_matrix, dtype=bool)
     for inner_uid, inner_iid, _ in trainset.all_ratings():
         rated_mask[inner_uid, inner_iid] = True
     pred_matrix[rated_mask] = -np.inf
 
-    # 4️⃣ Batch Top-K recommendations
+    # Batch Top-K recommendations
     top_k_indices = np.argpartition(-pred_matrix, top_k, axis=1)[:, :top_k]
     row_indices = np.arange(num_users)[:, None]
     top_k_sorted_idx = top_k_indices[
         row_indices, np.argsort(-pred_matrix[row_indices, top_k_indices])
     ]
 
-    # 5️⃣ Build recommendation dictionary
+    # Build recommendation dictionary
     recommendations = {}
     for inner_uid in range(num_users):
         user_id = trainset.to_raw_uid(inner_uid)
@@ -266,7 +266,7 @@ def SVD_recommend(train_profiles, test_prefiles, reviews, top_k=10):
     test_profiles = test_prefiles[test_prefiles['is_cold_start'] == False].reset_index(drop=True)
     reviews = reviews
 
-    # 4️⃣ Build SVD training data
+    # Build SVD training data
     training_data = build_svd_training(
         reviews=reviews,
         train_profiles=train_profiles,
@@ -275,33 +275,33 @@ def SVD_recommend(train_profiles, test_prefiles, reviews, top_k=10):
     )
     print("Final SVD training set size:", len(training_data))
 
-    # 5️⃣ Train SVD model
+    # Train SVD model
     model, trainset = train_svd_model(training_data, n_factors=150, n_epochs=30, lr_all=0.005, reg_all=0.05, biased=False, random_state=42)
 
-    # 6️⃣ Generate recommendation dictionary for all users
+    # Generate recommendation dictionary for all users
     recommendations = recommend_for_all_users_fast(model, trainset, train_profiles, top_k=top_k)
     print(f"Generated Top-{top_k} recommendations for {len(recommendations)} users in total")
 
     return recommendations
 
 def auto_recommend_dump(top_k=10):
-    # 1️⃣ Load basic cleaned data
+    # Load basic cleaned data
     profiles = get_clean_profiles()
     reviews = get_clean_reviews()
 
-    # 2️⃣ Secondary preprocessing
+    # Secondary preprocessing
     profiles = profile_preprocess(profiles)
     reviews = review_preprocess(reviews)
 
-    # 3️⃣ Select necessary columns
+    # Select necessary columns
     #profiles = profiles[['profile', 'favorites_anime']]
     #reviews = reviews[['uid', 'profile', 'anime_uid', 'score']]
 
-    # 4️⃣ Split training and test sets
+    # Split training and test sets
     from preprocessing.split_dataset import split_profile
     train_profiles, test_profiles = split_profile(profiles, train_size=0.5, test_size=0.5)
 
-    # 5️⃣ Build SVD training data
+    # Build SVD training data
     training_data = build_svd_training(
         reviews=reviews,
         train_profiles=train_profiles,
@@ -310,7 +310,7 @@ def auto_recommend_dump(top_k=10):
     )
     print("Final SVD training set size:", len(training_data))
 
-    # 6️⃣ Train SVD model
+    # Train SVD model
     model, trainset = train_svd_model(training_data,n_factors=150,n_epochs=30,lr_all=0.005,reg_all=0.05,biased=False,random_state=42)
 
     testset = []
@@ -325,12 +325,12 @@ def auto_recommend_dump(top_k=10):
     rmse = accuracy.rmse(pred, verbose=True)
     print(f"RMSE on split test set favorites: {rmse:.4f}")
 
-    # 7️⃣ Generate recommendation dictionary for all users
+    # Generate recommendation dictionary for all users
     #recommendations = recommend_for_all_users(model, trainset, train_profiles, top_k=top_k)
     recommendations = recommend_for_all_users_fast(model, trainset, train_profiles, top_k=top_k)
     print(f"Generated Top-{top_k} recommendations for {len(recommendations)} users in total")
 
-    # 8️⃣ Optional: Print examples
+    # Optional: Print examples
     for user, recs in list(recommendations.items())[:3]:
         print(f"{user}: {recs}")
 
