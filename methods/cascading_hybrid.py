@@ -5,7 +5,7 @@ from collections import defaultdict
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 #from methods.CF import auto_recommend_dump, read_json_recommendations
-from methods.collaborative_basic import CollaborativeFilteringRecommender, collaborative_recommend
+from methods.collaborative_knn import CollaborativeFilteringRecommender, collaborative_recommend
 from methods.content_based import ContentBasedRecommender, content_based_recommend
 from methods.cold_start import recommend_for_cold_start_profiles
 import pandas as pd

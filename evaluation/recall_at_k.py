@@ -1,9 +1,6 @@
 from typing import List, Dict, Tuple, Union
-from collections import defaultdict
 import pandas as pd
 import ast
-import os
-import sys
 
 def recall_at_n(predictions: List[int], ground_truth: List[int], n: int) -> float:
     """
@@ -64,6 +61,3 @@ def evaluate_recall_at_k(predictions: Dict[str, List[Tuple[int, float]]],
         ground_truth_dict[user_id] = anime_ids
 
     return batch_recall_at_n(predictions, ground_truth_dict, k)
-
-if __name__ == "__main__":
-    print('recall')

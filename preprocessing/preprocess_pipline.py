@@ -98,7 +98,7 @@ def save_recommendations(recommendations: dict, out_dir: str = CLEAN_DIR) -> Non
 
 if __name__ == "__main__":
     # Example usage
-    animes, profiles, reviews = load_cleaned.get_all_cleaned_data()
+    animes, profiles, reviews = get_all_cleaned_data()
 
     animes, profiles, reviews = final_preprocess(animes, profiles, reviews)
     print("Processed Animes:")
